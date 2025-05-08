@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-# Updated imports: Removed FixedTechStack, FixedCurriculumUnit
-from models import init_db, Company, TechStack, CurriculumUnit, UserProgress, get_db_connection # Import get_db_connection
+# Updated imports: Use relative import for models
+from .models import init_db, Company, TechStack, CurriculumUnit, UserProgress, get_db_connection 
 import os
 import json
 from datetime import datetime, date # Added date import
@@ -9,7 +9,9 @@ from collections import defaultdict # Import defaultdict for easier grouping
 app = Flask(__name__)
 
 # Ensure the database directory exists
-os.makedirs(os.path.join(os.path.dirname(__file__), 'database'), exist_ok=True)
+# The path needs to be relative to the app.py file now
+db_dir = os.path.join(os.path.dirname(__file__), 'database')
+os.makedirs(db_dir, exist_ok=True)
 
 # Initialize the database
 init_db()
