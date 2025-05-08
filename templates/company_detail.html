@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} - Learning Curriculum Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Companies</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ company.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">{{ company.name }}</h2>
+            </div>
+            <div class="card-body">
+                <p><strong>Description:</strong> {{ company.description or 'No description provided' }}</p>
+                <p><strong>Created:</strong> {{ company.created_at }}</p>
+
+                <h3 class="mt-4 mb-3">Associated Tech Stacks</h3>
+                {% if associated_tech_stacks %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Associated At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tech_stack in associated_tech_stacks %}
+                            <tr>
+                                <td>{{ tech_stack.name }}</td>
+                                <td>{{ tech_stack.description }}</td>
+                                <td>{{ tech_stack.start_date }}</td>
+                                <td>
+                                    <!-- Link to view progress for this specific company/tech stack instance -->
+                                    <a href="{{ url_for('schedule', company_id=company.id) }}?tech_stack_id={{ tech_stack.id }}"
+                                        class="btn btn-info btn-sm">View Schedule/Progress</a>
+                                    <!-- Add remove association button if needed -->
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No tech stacks associated with this company yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Associate Tech Stack Template</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_tech_stack_to_company', company_id=company.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="tech_stack_id" class="form-label">Select Template</label>
+                        <select class="form-select" id="tech_stack_id" name="tech_stack_id" required>
+                            <option value="">Choose...</option>
+                            {% for template in tech_stack_templates %}
+                            {% set is_associated = template.id in associated_tech_stacks|map(attribute='id')|list %}
+                            {% if not is_associated %}
+                            <option value="{{ template.id }}">{{ template.name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Associate Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Removed the old progress chart as progress is now per company/tech stack association -->
+
+    </div>
+</div>
+{% endblock %}

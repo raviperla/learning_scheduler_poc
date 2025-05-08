@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Learning Curriculum Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Today's Learning Schedule (All Companies)</h2>
+            </div>
+            <div class="card-body">
+                {% if today_schedule %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Tech Stack</th>
+                                <th>Topic</th>
+                                <th>Description</th>
+                                <th>Day</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in today_schedule %}
+                            <tr>
+                                <td>{{ item.company_name }}</td>
+                                <td>{{ item.tech_stack_name }}</td>
+                                <td>{{ item.title }}</td>
+                                <td>{{ item.description }}</td>
+                                <td>{{ item.day_number }} / {{ item.duration_days }}</td>
+                                <td>
+                                    <form
+                                        action="{{ url_for('mark_completed', company_tech_stack_id=item.company_tech_stack_id, unit_id=item.curriculum_unit_id) }}"
+                                        method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-success btn-sm">Mark Complete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No learning tasks scheduled for today! 🎉</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">Overall Progress</h3>
+            </div>
+            <div class="card-body">
+                <p>Progress charts are now available on the company detail pages.</p>
+                <!-- Removed overall progress chart as it's less meaningful now -->
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('schedule') }}" class="btn btn-outline-primary">View Company Schedules</a>
+                    <a href="{{ url_for('companies') }}" class="btn btn-outline-secondary">Manage Companies</a>
+                    <a href="{{ url_for('tech_stack_templates') }}" class="btn btn-outline-info">Manage Tech Stack
+                        Templates</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Removed chart.js script as chart is moved -->
+{% endblock %}

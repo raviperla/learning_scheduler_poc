@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tech_stack.name }} - Learning Curriculum Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Companies</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company_id) }}">{{
+                        company_id }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ tech_stack.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">{{ tech_stack.name }} Curriculum</h2>
+            </div>
+            <div class="card-body">
+                <p><strong>Description:</strong> {{ tech_stack.description or 'No description provided' }}</p>
+                <p><strong>Created:</strong> {{ tech_stack.created_at }}</p>
+
+                <h3 class="mt-4 mb-3">Curriculum Units</h3>
+                {% if units %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Duration (days)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unit in units %}
+                            <tr>
+                                <td>{{ unit.order_index }}</td>
+                                <td>{{ unit.title }}</td>
+                                <td>{{ unit.description }}</td>
+                                <td>{{ unit.duration_days }}</td>
+                                <td>
+                                    {% if unit.completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if unit.completed %}
+                                    <form action="{{ url_for('mark_incomplete', unit_id=unit.id) }}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-warning btn-sm">Mark Incomplete</button>
+                                    </form>
+                                    {% else %}
+                                    <form action="{{ url_for('mark_completed', unit_id=unit.id) }}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-success btn-sm">Mark Complete</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No curriculum units found for this tech stack. Add units to get started!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Add New Curriculum Unit</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_unit', tech_stack_id=tech_stack.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="order_index" class="form-label">Order Index</label>
+                        <input type="number" class="form-control" id="order_index" name="order_index" value="0" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="duration_days" class="form-label">Duration (days)</label>
+                        <input type="number" class="form-control" id="duration_days" name="duration_days" value="1"
+                            min="1">
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Unit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">Learning Timeline</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Fetch units for this tech stack
+        fetch('/api/tech_stacks/{{ tech_stack.id }}/units')
+            .then(response => response.json())
+            .then(units => {
+                if (units.length === 0) {
+                    document.getElementById('timelineChart').parentElement.innerHTML =
+                        '<div class="alert alert-info">No units to display timeline for.</div>';
+                    return;
+                }
+
+                // Fetch progress data
+                fetch('/api/progress')
+                    .then(response => response.json())
+                    .then(progressData => {
+                        // Create a map of unit_id to completion status
+                        const progressMap = {};
+                        progressData.forEach(item => {
+                            progressMap[item.id] = item.completed;
+                        });
+
+                        // Sort units by order_index
+                        units.sort((a, b) => a.order_index - b.order_index);
+
+                        // Calculate timeline data
+                        let totalDays = 0;
+                        const timelineData = units.map(unit => {
+                            const duration = unit.duration_days;
+                            const isCompleted = progressMap[unit.id] || false;
+
+                            totalDays += duration;
+
+                            return {
+                                title: unit.title,
+                                duration: duration,
+                                completed: isCompleted
+                            };
+                        });
+
+                        // Create the chart
+                        const ctx = document.getElementById('timelineChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: timelineData.map(item => item.title),
+                                datasets: [{
+                                    label: 'Duration (days)',
+                                    data: timelineData.map(item => item.duration),
+                                    backgroundColor: timelineData.map(item =>
+                                        item.completed ? 'rgba(40, 167, 69, 0.7)' : 'rgba(108, 117, 125, 0.7)'
+                                    ),
+                                    borderColor: timelineData.map(item =>
+                                        item.completed ? 'rgba(40, 167, 69, 1)' : 'rgba(108, 117, 125, 1)'
+                                    ),
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                scales: {
+                                    x: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Duration (days)'
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: `Total Learning Time: ${totalDays} days`
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function (context) {
+                                                const item = timelineData[context.dataIndex];
+                                                return `${item.duration} days ${item.completed ? '(Completed)' : '(Pending)'}`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    });
+            })
+            .catch(error => console.error('Error fetching unit data:', error));
+    });
+</script>
+{% endblock %}

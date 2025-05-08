@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Companies - Learning Curriculum Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Companies</h2>
+            </div>
+            <div class="card-body">
+                {% if companies %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company in companies %}
+                            <tr>
+                                <td>{{ company.name }}</td>
+                                <td>{{ company.description }}</td>
+                                <td>{{ company.created_at }}</td>
+                                <td>
+                                    <a href="{{ url_for('company_detail', company_id=company.id) }}"
+                                        class="btn btn-info btn-sm">View Details</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No companies found. Add a company to get started!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Add New Company</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_company') }}" method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tech_stack_ids" class="form-label">Associate Tech Stacks (Templates)</label>
+                        <select class="form-select" id="tech_stack_ids" name="tech_stack_ids" multiple>
+                            {% for template in tech_stack_templates %}
+                            <option value="{{ template.id }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple.</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Company</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0">Company Stats</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="companyStatsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Fetch company data for the chart
+        fetch('/api/companies')
+            .then(response => response.json())
+            .then(companies => {
+                if (companies.length === 0) {
+                    document.getElementById('companyStatsChart').parentElement.innerHTML =
+                        '<div class="alert alert-info">No companies to display stats for.</div>';
+                    return;
+                }
+
+                // Fetch tech stacks for each company
+                const promises = companies.map(company =>
+                    fetch(`/api/companies/${company.id}/tech_stacks`)
+                        .then(response => response.json())
+                        .then(techStacks => ({
+                            company: company.name,
+                            techStackCount: techStacks.length
+                        }))
+                );
+
+                Promise.all(promises)
+                    .then(data => {
+                        // Create the chart
+                        const ctx = document.getElementById('companyStatsChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: data.map(item => item.company),
+                                datasets: [{
+                                    label: 'Number of Tech Stacks',
+                                    data: data.map(item => item.techStackCount),
+                                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            stepSize: 1
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Tech Stacks per Company'
+                                    }
+                                }
+                            }
+                        });
+                    });
+            })
+            .catch(error => console.error('Error fetching company data:', error));
+    });
+</script>
+{% endblock %}

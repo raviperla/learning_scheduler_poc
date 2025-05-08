@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Company Schedule - Learning Curriculum Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-6">
+        <h2>Company Schedule</h2>
+    </div>
+    <div class="col-md-6">
+        <form method="get" action="{{ url_for('schedule') }}">
+            <div class="input-group">
+                <select name="company_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Select a Company</option>
+                    {% for company in companies %}
+                    <option value="{{ company.id }}" {% if company.id==selected_company_id %}selected{% endif %}>{{
+                        company.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    Schedule for: {% if selected_company_id %}{{ companies|selectattr('id', 'equalto',
+                    selected_company_id)|first|attr('name') }}{% else %}Please select a company{% endif %}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="scheduleContainer">
+                    {% if selected_company_id %}
+                    {% if company_schedule_exists and schedule_by_month %}
+                    {% for month_year_key, dates_in_month in schedule_by_month.items() %}
+                    <div class="month-section mb-4">
+                        {# Display Month Year - Reconstruct from YYYY-MM key #}
+                        {% set month_name = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+                        'September', 'October', 'November', 'December'][month_year_key[5:7]|int - 1] %}
+                        {% set year = month_year_key[:4] %}
+                        <h4 class="border-bottom pb-2">{{ month_name }} {{ year }}</h4>
+                        <div class="accordion" id="accordion{{ month_year_key|replace('-', '') }}">
+                            {# Iterate through the formatted date keys which are already sorted by app.py #}
+                            {% for formatted_date_key, items in dates_in_month.items() %}
+                            {% set date_str = items[0].schedule_date_str %} {# Get original YYYY-MM-DD #}
+                            {% set is_today = date_str == today_str %}
+                            {% set header_class = 'bg-light' %}
+                            {% if is_today %}
+                            {% set header_class = 'bg-success text-white' %}
+                            {% endif %}
+                            {% set today_badge = '<span class="badge bg-warning ms-2">TODAY</span>' if is_today else ''
+                            %}
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ date_str|replace('-', '') }}">
+                                    <button
+                                        class="accordion-button {{ '' if is_today else 'collapsed' }} {{ header_class }}"
+                                        type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapse{{ date_str|replace('-', '') }}"
+                                        aria-expanded="{{ 'true' if is_today else 'false' }}"
+                                        aria-controls="collapse{{ date_str|replace('-', '') }}">
+                                        {{ formatted_date_key }} {{ today_badge|safe }} {# Display formatted date #}
+                                        <span class="badge bg-primary ms-2">{{ items|length }} item(s)</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ date_str|replace('-', '') }}"
+                                    class="accordion-collapse collapse {{ 'show' if is_today else '' }}"
+                                    aria-labelledby="heading{{ date_str|replace('-', '') }}"
+                                    data-bs-parent="#accordion{{ month_year_key|replace('-', '') }}">
+                                    <div class="accordion-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Tech Stack</th>
+                                                        <th>Topic</th>
+                                                        <th>Description</th>
+                                                        <th>Day</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in items %}
+                                                    <tr>
+                                                        <td>{{ item.tech_stack_name }}</td>
+                                                        <td>{{ item.title }}</td>
+                                                        <td>{{ item.description or '' }}</td>
+                                                        <td>{{ item.day_number }} / {{ item.duration_days }}</td>
+                                                        <td>
+                                                            <form
+                                                                action="{{ url_for('mark_completed', company_tech_stack_id=item.company_tech_stack_id, unit_id=item.curriculum_unit_id) }}"
+                                                                method="post" class="d-inline">
+                                                                <button type="submit"
+                                                                    class="btn btn-success btn-sm">Mark
+                                                                    Complete</button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No learning tasks scheduled for this company!</p>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <p class="mb-0">Please select a company to view its schedule.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any specific JS for the schedule page if needed
+</script>
+{% endblock %}
