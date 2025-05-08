@@ -1,1 +1,1 @@
-web: gunicorn learning_tracker.app:app
+web: cd learning_tracker && gunicorn app:app

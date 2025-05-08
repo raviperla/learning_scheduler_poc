@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-# Updated imports: Use relative import for models
-from .models import init_db, Company, TechStack, CurriculumUnit, UserProgress, get_db_connection 
+# Reverted import back to standard
+from models import init_db, Company, TechStack, CurriculumUnit, UserProgress, get_db_connection 
 import os
 import json
 from datetime import datetime, date # Added date import

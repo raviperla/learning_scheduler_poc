@@ -35,7 +35,7 @@
                 <div id="scheduleContainer">
                     {% if selected_company_id %}
                     {% if company_schedule_exists and schedule_by_month %}
-                    {% for month_year_key, dates_in_month in schedule_by_month.items() %}
+                    {% for month_year_key, dates_in_month in schedule_by_month.items() %} {# Already sorted by app.py #}
                     <div class="month-section mb-4">
                         {# Display Month Year - Reconstruct from YYYY-MM key #}
                         {% set month_name = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
@@ -43,7 +43,7 @@
                         {% set year = month_year_key[:4] %}
                         <h4 class="border-bottom pb-2">{{ month_name }} {{ year }}</h4>
                         <div class="accordion" id="accordion{{ month_year_key|replace('-', '') }}">
-                            {# Iterate through the formatted date keys which are already sorted by app.py #}
+                            {# Iterate through the formatted date keys which are keys of the inner dict #}
                             {% for formatted_date_key, items in dates_in_month.items() %}
                             {% set date_str = items[0].schedule_date_str %} {# Get original YYYY-MM-DD #}
                             {% set is_today = date_str == today_str %}
